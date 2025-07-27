@@ -31,7 +31,7 @@ export interface Chat {
 
 export interface Transaction {
   id: string;
-  type: 'sent' | 'received' | 'bill' | 'airtime';
+  type: 'sent' | 'received' | 'bill' | 'airtime' | 'crypto-exchange' | 'cross-border';
   amount: number;
   recipient?: string;
   sender?: string;
@@ -39,53 +39,71 @@ export interface Transaction {
   timestamp: Date;
   status: 'completed' | 'pending' | 'failed';
   currency: string;
+  cryptoType?: 'BTC' | 'ETH' | 'USDT' | 'BNB' | 'USDC' | 'XAF' | 'NGN' | 'KES';
+  exchangeRate?: number;
+  networkFee?: number;
 }
 
-// Mock Users
+// Mock Users - Pan-African Focus
 export const mockUsers: User[] = [
   {
     id: "1",
     name: "Aisha Musa",
-    phone: "+234 901 234 5678",
+    phone: "+234 901 234 5678", // Nigeria
     avatar: "",
     isOnline: true
   },
   {
     id: "2", 
-    name: "Kwame Nkrumah",
-    phone: "+233 245 678 901",
+    name: "Kwame Asante",
+    phone: "+233 245 678 901", // Ghana
     avatar: "",
     isOnline: false,
     lastSeen: "2 hours ago"
   },
   {
     id: "3",
-    name: "Mama Nkechi (Shop)",
-    phone: "+234 803 456 7890",
+    name: "Amara Diallo",
+    phone: "+221 776 234 567", // Senegal
     avatar: "",
     isOnline: true
   },
   {
     id: "4",
-    name: "Community Group",
-    phone: "",
+    name: "Kenzo Mbeki",
+    phone: "+27 82 456 7890", // South Africa
     avatar: "",
     isOnline: true
   },
   {
     id: "5",
-    name: "Fatima Al-Zahra",
-    phone: "+221 776 234 567",
+    name: "Zara Hassan",
+    phone: "+254 722 345 678", // Kenya
     avatar: "",
     isOnline: false,
     lastSeen: "Yesterday"
   },
   {
     id: "6",
-    name: "Chidi Okafor",
-    phone: "+234 705 890 1234",
+    name: "Pan-Africa Crypto Group",
+    phone: "",
     avatar: "",
     isOnline: true
+  },
+  {
+    id: "7",
+    name: "Fatou Camara",
+    phone: "+225 07 123 4567", // Côte d'Ivoire
+    avatar: "",
+    isOnline: true
+  },
+  {
+    id: "8",
+    name: "Omar El-Rashid",
+    phone: "+20 100 234 5678", // Egypt
+    avatar: "",
+    isOnline: false,
+    lastSeen: "3 hours ago"
   }
 ];
 
@@ -175,47 +193,84 @@ export const mockChats: Chat[] = [
   }
 ];
 
-// Mock Transactions
+// Mock Transactions - Crypto & Pan-African Focus
 export const mockTransactions: Transaction[] = [
   {
     id: "txn1",
-    type: "sent",
-    amount: 5000,
-    recipient: "Aisha Musa",
-    description: "Lunch money",
+    type: "cross-border",
+    amount: 0.15,
+    recipient: "Kwame Asante (Ghana)",
+    description: "Payment for web design",
     timestamp: new Date(Date.now() - 1000 * 60 * 60 * 2), // 2 hours ago
     status: "completed",
-    currency: "₦"
+    currency: "ETH",
+    cryptoType: "ETH",
+    networkFee: 0.002
   },
   {
     id: "txn2",
     type: "received", 
-    amount: 2500,
-    sender: "Kwame Nkrumah",
-    description: "Payment for services",
-    timestamp: new Date(Date.now() - 1000 * 60 * 60 * 6), // 6 hours ago
+    amount: 500,
+    sender: "Amara Diallo (Senegal)",
+    description: "Freelance payment",
+    timestamp: new Date(Date.now() - 1000 * 60 * 60 * 4), // 4 hours ago
     status: "completed",
-    currency: "₦"
+    currency: "USDT",
+    cryptoType: "USDT"
   },
   {
     id: "txn3",
-    type: "bill",
-    amount: 8500,
-    description: "Electricity Bill - PHCN",
-    timestamp: new Date(Date.now() - 1000 * 60 * 60 * 24), // Yesterday
+    type: "crypto-exchange",
+    amount: 25000,
+    description: "USDT → NGN Exchange",
+    timestamp: new Date(Date.now() - 1000 * 60 * 60 * 8), // 8 hours ago
     status: "completed",
-    currency: "₦"
+    currency: "NGN",
+    cryptoType: "NGN",
+    exchangeRate: 1650
   },
   {
     id: "txn4",
-    type: "airtime",
-    amount: 1000,
-    description: "MTN Airtime",
+    type: "sent",
+    amount: 0.003,
+    recipient: "Zara Hassan (Kenya)",
+    description: "School fees contribution",
+    timestamp: new Date(Date.now() - 1000 * 60 * 60 * 24), // Yesterday
+    status: "completed",
+    currency: "BTC",
+    cryptoType: "BTC",
+    networkFee: 0.0001
+  },
+  {
+    id: "txn5",
+    type: "cross-border",
+    amount: 1200,
+    recipient: "Kenzo Mbeki (South Africa)",
+    description: "Business investment",
+    timestamp: new Date(Date.now() - 1000 * 60 * 60 * 36), // 1.5 days ago
+    status: "completed",
+    currency: "USDC",
+    cryptoType: "USDC"
+  },
+  {
+    id: "txn6",
+    type: "bill",
+    amount: 15000,
+    description: "Electricity Bill (via NGN)",
     timestamp: new Date(Date.now() - 1000 * 60 * 60 * 48), // 2 days ago
     status: "completed",
-    currency: "₦"
+    currency: "NGN"
   }
 ];
 
-// Mock Balance
-export const mockBalance = 15750;
+// Mock Crypto Balances
+export const mockCryptoBalances = {
+  BTC: { amount: 0.025, usdValue: 1125 },
+  ETH: { amount: 0.85, usdValue: 2040 },
+  USDT: { amount: 2500, usdValue: 2500 },
+  USDC: { amount: 1800, usdValue: 1800 },
+  BNB: { amount: 3.2, usdValue: 768 }
+};
+
+// Mock FIAT Balance (Secondary)
+export const mockFiatBalance = { NGN: 125000, USD: 150 };

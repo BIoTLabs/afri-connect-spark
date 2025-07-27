@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { ArrowLeft, User, Building, Smartphone, Bitcoin } from "lucide-react";
+import { ArrowLeft, User, Building, Smartphone, Bitcoin, Globe, ArrowUpDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { mockUsers, mockBalance } from "@/data/mockData";
+import { mockUsers, mockCryptoBalances, mockFiatBalance } from "@/data/mockData";
 import { cn } from "@/lib/utils";
 
 const SendMoney = () => {
@@ -16,7 +16,7 @@ const SendMoney = () => {
   const [searchParams] = useSearchParams();
   const { toast } = useToast();
   
-  const [activeTab, setActiveTab] = useState("contact");
+  const [activeTab, setActiveTab] = useState("crypto");
   const [amount, setAmount] = useState("");
   const [recipient, setRecipient] = useState(searchParams.get('recipient') || "");
   const [description, setDescription] = useState("");
@@ -24,15 +24,19 @@ const SendMoney = () => {
   const [phoneNumber, setPhoneNumber] = useState("");
   const [bankName, setBankName] = useState("");
   const [accountNumber, setAccountNumber] = useState("");
-  const [cryptoType, setCryptoType] = useState("");
+  const [cryptoType, setCryptoType] = useState("USDT");
   const [walletAddress, setWalletAddress] = useState("");
+  const [selectedCountry, setSelectedCountry] = useState("");
 
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('en-NG', {
-      style: 'currency',
-      currency: 'NGN',
-      minimumFractionDigits: 0
-    }).format(amount);
+  const formatCurrency = (amount: number, currency: string = 'USD') => {
+    if (currency === 'NGN') {
+      return new Intl.NumberFormat('en-NG', {
+        style: 'currency',
+        currency: 'NGN',
+        minimumFractionDigits: 0
+      }).format(amount);
+    }
+    return `${amount} ${currency}`;
   };
 
   const handleSendMoney = () => {
@@ -45,10 +49,18 @@ const SendMoney = () => {
       return;
     }
 
-    if (parseFloat(amount) > mockBalance) {
+    // Check crypto balance based on selected currency
+    let availableBalance = 0;
+    if (activeTab === "crypto" && cryptoType && mockCryptoBalances[cryptoType as keyof typeof mockCryptoBalances]) {
+      availableBalance = mockCryptoBalances[cryptoType as keyof typeof mockCryptoBalances].amount;
+    } else if (activeTab === "fiat") {
+      availableBalance = mockFiatBalance.NGN;
+    }
+
+    if (parseFloat(amount) > availableBalance) {
       toast({
         title: "Insufficient funds",
-        description: "You don't have enough balance for this transaction",
+        description: `You don't have enough ${cryptoType || 'NGN'} balance for this transaction`,
         variant: "destructive"
       });
       return;
@@ -64,9 +76,10 @@ const SendMoney = () => {
     }
 
     // Simulate successful transaction
+    const currency = activeTab === "crypto" ? cryptoType : "NGN";
     toast({
       title: "Transaction successful!",
-      description: `₦${parseFloat(amount).toLocaleString()} sent successfully`,
+      description: `${parseFloat(amount)} ${currency} sent successfully`,
     });
 
     // Navigate back to dashboard after a delay
@@ -77,28 +90,28 @@ const SendMoney = () => {
 
   const tabs = [
     {
+      value: "crypto",
+      label: "Crypto",
+      icon: Bitcoin,
+      description: "Send cryptocurrency globally"
+    },
+    {
+      value: "pan-africa",
+      label: "Pan-Africa",
+      icon: Globe,
+      description: "Cross-border to African countries"
+    },
+    {
       value: "contact",
       label: "Contact",
       icon: User,
       description: "Send to saved contacts"
     },
     {
-      value: "mobile",
-      label: "Mobile Money",
-      icon: Smartphone,
-      description: "Send via mobile networks"
-    },
-    {
-      value: "bank",
-      label: "Bank",
+      value: "fiat",
+      label: "FIAT (Legacy)",
       icon: Building,
-      description: "Transfer to bank account"
-    },
-    {
-      value: "crypto",
-      label: "Crypto",
-      icon: Bitcoin,
-      description: "Send cryptocurrency"
+      description: "Traditional bank/mobile money"
     }
   ];
 
@@ -110,10 +123,24 @@ const SendMoney = () => {
   ];
 
   const cryptoTypes = [
-    "Bitcoin (BTC)",
-    "Ethereum (ETH)",
-    "USDT (Tether)",
-    "Binance Coin (BNB)"
+    "USDT",
+    "USDC", 
+    "ETH",
+    "BTC",
+    "BNB"
+  ];
+
+  const africanCountries = [
+    "Nigeria (NGN)",
+    "Ghana (GHS)", 
+    "Kenya (KES)",
+    "South Africa (ZAR)",
+    "Senegal (XOF)",
+    "Côte d'Ivoire (XOF)",
+    "Egypt (EGP)",
+    "Morocco (MAD)",
+    "Ethiopia (ETB)",
+    "Tanzania (TZS)"
   ];
 
   return (
@@ -131,9 +158,9 @@ const SendMoney = () => {
               <ArrowLeft className="h-5 w-5" />
             </Button>
             <div>
-              <h1 className="text-xl font-bold">Send Money</h1>
+              <h1 className="text-xl font-bold">Send Crypto</h1>
               <p className="text-sm text-muted-foreground">
-                Balance: {formatCurrency(mockBalance)}
+                Portfolio: ${Object.values(mockCryptoBalances).reduce((sum, bal) => sum + bal.usdValue, 0).toLocaleString()}
               </p>
             </div>
           </div>
@@ -148,7 +175,7 @@ const SendMoney = () => {
           </CardHeader>
           <CardContent className="space-y-4">
             <div>
-              <Label htmlFor="amount">Amount (₦)</Label>
+              <Label htmlFor="amount">Amount ({activeTab === "crypto" ? cryptoType : "NGN"})</Label>
               <Input
                 id="amount"
                 type="number"
@@ -157,6 +184,11 @@ const SendMoney = () => {
                 onChange={(e) => setAmount(e.target.value)}
                 className="text-2xl font-bold text-center"
               />
+              {activeTab === "crypto" && cryptoType && mockCryptoBalances[cryptoType as keyof typeof mockCryptoBalances] && (
+                <p className="text-sm text-muted-foreground mt-1">
+                  Available: {mockCryptoBalances[cryptoType as keyof typeof mockCryptoBalances].amount} {cryptoType}
+                </p>
+              )}
             </div>
             <div>
               <Label htmlFor="description">Description (Optional)</Label>
@@ -184,7 +216,7 @@ const SendMoney = () => {
                     <TabsTrigger 
                       key={tab.value} 
                       value={tab.value}
-                      className="flex flex-col space-y-1 h-auto py-3"
+                      className={`flex flex-col space-y-1 h-auto py-3 ${tab.value === "crypto" || tab.value === "pan-africa" ? "border border-primary/20" : ""}`}
                     >
                       <Icon className="h-4 w-4" />
                       <span className="text-xs">{tab.label}</span>
@@ -192,6 +224,66 @@ const SendMoney = () => {
                   );
                 })}
               </TabsList>
+
+              <TabsContent value="crypto" className="space-y-4 mt-4">
+                <div>
+                  <Label htmlFor="crypto">Cryptocurrency</Label>
+                  <Select value={cryptoType} onValueChange={setCryptoType}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select cryptocurrency" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {cryptoTypes.map((crypto) => (
+                        <SelectItem key={crypto} value={crypto}>
+                          <div className="flex items-center space-x-2">
+                            <Bitcoin className="h-4 w-4" />
+                            <span>{crypto}</span>
+                          </div>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label htmlFor="wallet">Recipient Wallet Address</Label>
+                  <Input
+                    id="wallet"
+                    placeholder="Enter wallet address or select contact"
+                    value={walletAddress}
+                    onChange={(e) => setWalletAddress(e.target.value)}
+                  />
+                </div>
+              </TabsContent>
+
+              <TabsContent value="pan-africa" className="space-y-4 mt-4">
+                <div>
+                  <Label htmlFor="country">Destination Country</Label>
+                  <Select value={selectedCountry} onValueChange={setSelectedCountry}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select African country" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {africanCountries.map((country) => (
+                        <SelectItem key={country} value={country}>
+                          <div className="flex items-center space-x-2">
+                            <Globe className="h-4 w-4" />
+                            <span>{country}</span>
+                          </div>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label htmlFor="recipient-phone">Recipient Phone</Label>
+                  <Input
+                    id="recipient-phone"
+                    placeholder="e.g., +233 24 567 8901"
+                    value={phoneNumber}
+                    onChange={(e) => setPhoneNumber(e.target.value)}
+                  />
+                </div>
+              </TabsContent>
 
               <TabsContent value="contact" className="space-y-4 mt-4">
                 <div>
@@ -216,7 +308,29 @@ const SendMoney = () => {
                 </div>
               </TabsContent>
 
-              <TabsContent value="mobile" className="space-y-4 mt-4">
+              <TabsContent value="fiat" className="space-y-4 mt-4">
+                <div className="p-4 bg-muted/50 rounded-lg">
+                  <p className="text-sm text-muted-foreground mb-2">⚠️ Legacy Payment Method</p>
+                  <p className="text-xs text-muted-foreground">
+                    FIAT payments use traditional banking. Crypto payments are faster and cheaper.
+                  </p>
+                </div>
+                <div>
+                  <Label htmlFor="network">Payment Method</Label>
+                  <Select value={selectedNetwork} onValueChange={setSelectedNetwork}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select payment method" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {mobileNetworks.map((network) => (
+                        <SelectItem key={network} value={network}>
+                          {network}
+                        </SelectItem>
+                      ))}
+                      <SelectItem value="Bank Transfer">Bank Transfer</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
                 <div>
                   <Label htmlFor="network">Mobile Network</Label>
                   <Select value={selectedNetwork} onValueChange={setSelectedNetwork}>
@@ -233,60 +347,12 @@ const SendMoney = () => {
                   </Select>
                 </div>
                 <div>
-                  <Label htmlFor="phone">Phone Number</Label>
+                  <Label htmlFor="phone">Phone/Account Number</Label>
                   <Input
                     id="phone"
-                    placeholder="+234 000 000 0000"
+                    placeholder="+234 000 000 0000 or 0123456789"
                     value={phoneNumber}
                     onChange={(e) => setPhoneNumber(e.target.value)}
-                  />
-                </div>
-              </TabsContent>
-
-              <TabsContent value="bank" className="space-y-4 mt-4">
-                <div>
-                  <Label htmlFor="bank">Bank Name</Label>
-                  <Input
-                    id="bank"
-                    placeholder="Enter bank name"
-                    value={bankName}
-                    onChange={(e) => setBankName(e.target.value)}
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="account">Account Number</Label>
-                  <Input
-                    id="account"
-                    placeholder="0000000000"
-                    value={accountNumber}
-                    onChange={(e) => setAccountNumber(e.target.value)}
-                  />
-                </div>
-              </TabsContent>
-
-              <TabsContent value="crypto" className="space-y-4 mt-4">
-                <div>
-                  <Label htmlFor="crypto">Cryptocurrency</Label>
-                  <Select value={cryptoType} onValueChange={setCryptoType}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select cryptocurrency" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {cryptoTypes.map((crypto) => (
-                        <SelectItem key={crypto} value={crypto}>
-                          {crypto}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div>
-                  <Label htmlFor="wallet">Wallet Address</Label>
-                  <Input
-                    id="wallet"
-                    placeholder="Enter wallet address"
-                    value={walletAddress}
-                    onChange={(e) => setWalletAddress(e.target.value)}
                   />
                 </div>
               </TabsContent>
@@ -302,15 +368,25 @@ const SendMoney = () => {
               <div className="space-y-2 text-sm">
                 <div className="flex justify-between">
                   <span>Amount:</span>
-                  <span className="font-semibold">₦{parseFloat(amount || "0").toLocaleString()}</span>
+                  <span className="font-semibold">{parseFloat(amount || "0")} {activeTab === "crypto" ? cryptoType : "NGN"}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span>Fee:</span>
-                  <span className="font-semibold">₦0.00</span>
+                  <span>Network Fee:</span>
+                  <span className="font-semibold text-green-600">
+                    {activeTab === "crypto" ? "~$0.50" : "₦0.00"}
+                  </span>
                 </div>
+                {activeTab === "crypto" && (
+                  <div className="flex justify-between">
+                    <span>USD Value:</span>
+                    <span className="font-semibold">
+                      ${(parseFloat(amount || "0") * (cryptoType === "USDT" || cryptoType === "USDC" ? 1 : cryptoType === "ETH" ? 2400 : cryptoType === "BTC" ? 45000 : 600)).toLocaleString()}
+                    </span>
+                  </div>
+                )}
                 <div className="flex justify-between border-t pt-2">
                   <span className="font-semibold">Total:</span>
-                  <span className="font-semibold text-primary">₦{parseFloat(amount || "0").toLocaleString()}</span>
+                  <span className="font-semibold text-primary">{parseFloat(amount || "0")} {activeTab === "crypto" ? cryptoType : "NGN"}</span>
                 </div>
               </div>
             </CardContent>
@@ -323,7 +399,7 @@ const SendMoney = () => {
           className="w-full bg-gradient-primary hover:bg-gradient-sunset shadow-warm text-lg py-6"
           disabled={!amount || parseFloat(amount) <= 0}
         >
-          Send ₦{parseFloat(amount || "0").toLocaleString()}
+          Send {parseFloat(amount || "0")} {activeTab === "crypto" ? cryptoType : "NGN"}
         </Button>
       </div>
     </div>

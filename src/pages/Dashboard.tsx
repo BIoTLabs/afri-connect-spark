@@ -15,7 +15,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { mockBalance, mockTransactions } from "@/data/mockData";
+import { mockCryptoBalances, mockFiatBalance, mockTransactions } from "@/data/mockData";
 import { cn } from "@/lib/utils";
 
 const Dashboard = () => {
@@ -119,7 +119,7 @@ const Dashboard = () => {
               </Button>
             </div>
             <div className="text-3xl font-bold">
-              {showBalance ? formatCurrency(mockBalance) : "••••••"}
+              {showBalance ? `$${Object.values(mockCryptoBalances).reduce((sum, bal) => sum + bal.usdValue, 0).toLocaleString()}` : "••••••"}
             </div>
             <p className="text-sm text-primary-foreground/60 mt-1">
               Last updated: {new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
