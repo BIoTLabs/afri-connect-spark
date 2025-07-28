@@ -4,29 +4,31 @@ import { Search, Plus, MessageCircle } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import AvatarWithStatus from "@/components/ui/avatar-with-status";
-import { mockChats, mockUsers } from "@/data/mockData";
+import { useAuth } from "@/hooks/useAuth";
+import { useChat } from "@/hooks/useChat";
 import { cn } from "@/lib/utils";
 
 const ChatList = () => {
+  const { user, signOut } = useAuth();
+  const { chats, profiles, loading } = useChat();
   const [searchQuery, setSearchQuery] = useState("");
 
   // Filter chats based on search
-  const filteredChats = mockChats.filter(chat => {
+  const filteredChats = chats.filter(chat => {
     if (!searchQuery) return true;
     
-    if (chat.isGroup && chat.name) {
+    if (chat.is_group && chat.name) {
       return chat.name.toLowerCase().includes(searchQuery.toLowerCase());
     }
     
-    const otherParticipantId = chat.participants.find(id => id !== "current_user");
-    const otherUser = mockUsers.find(user => user.id === otherParticipantId);
-    
-    return otherUser?.name.toLowerCase().includes(searchQuery.toLowerCase());
+    const otherParticipant = chat.participants?.find(p => p.user_id !== user?.id);
+    return otherParticipant?.name.toLowerCase().includes(searchQuery.toLowerCase());
   });
 
-  const formatTimestamp = (timestamp: Date) => {
+  const formatTimestamp = (timestamp: string) => {
     const now = new Date();
-    const diff = now.getTime() - timestamp.getTime();
+    const messageTime = new Date(timestamp);
+    const diff = now.getTime() - messageTime.getTime();
     const minutes = Math.floor(diff / (1000 * 60));
     const hours = Math.floor(diff / (1000 * 60 * 60));
     const days = Math.floor(diff / (1000 * 60 * 60 * 24));
@@ -38,12 +40,12 @@ const ChatList = () => {
     } else if (days === 1) {
       return "Yesterday";
     } else {
-      return timestamp.toLocaleDateString();
+      return messageTime.toLocaleDateString();
     }
   };
 
   const getChatDisplayInfo = (chat: any) => {
-    if (chat.isGroup) {
+    if (chat.is_group) {
       return {
         name: chat.name || "Group Chat",
         avatar: "",
@@ -51,13 +53,12 @@ const ChatList = () => {
       };
     }
     
-    const otherParticipantId = chat.participants.find((id: string) => id !== "current_user");
-    const otherUser = mockUsers.find(user => user.id === otherParticipantId);
+    const otherParticipant = chat.participants?.find((p: any) => p.user_id !== user?.id);
     
     return {
-      name: otherUser?.name || "Unknown User",
-      avatar: otherUser?.avatar || "",
-      isOnline: otherUser?.isOnline || false
+      name: otherParticipant?.name || "Unknown User",
+      avatar: otherParticipant?.avatar_url || "",
+      isOnline: otherParticipant?.is_online || false
     };
   };
 
@@ -76,7 +77,9 @@ const ChatList = () => {
             
             <Button 
               size="icon" 
-              className="bg-gradient-primary hover:bg-gradient-sunset shadow-warm rounded-full"
+              onClick={signOut}
+              variant="outline"
+              className="rounded-full"
             >
               <Plus className="h-5 w-5" />
             </Button>
@@ -97,7 +100,11 @@ const ChatList = () => {
 
       {/* Chat List */}
       <div className="flex-1 overflow-y-auto">
-        {filteredChats.length === 0 ? (
+        {loading ? (
+          <div className="flex items-center justify-center h-full">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+          </div>
+        ) : filteredChats.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-full px-4 text-center">
             <MessageCircle className="h-16 w-16 text-muted-foreground mb-4" />
             <h3 className="text-lg font-semibold mb-2">No chats found</h3>
@@ -132,21 +139,21 @@ const ChatList = () => {
                       <h3 className="font-semibold text-foreground truncate">
                         {displayInfo.name}
                       </h3>
-                      {chat.lastMessage && (
+                       {chat.last_message && (
                         <span className="text-xs text-muted-foreground">
-                          {formatTimestamp(chat.lastMessage.timestamp)}
+                          {formatTimestamp(chat.last_message.created_at)}
                         </span>
                       )}
                     </div>
                     
                     <div className="flex items-center justify-between">
                       <p className="text-sm text-muted-foreground truncate flex-1">
-                        {chat.lastMessage?.content || "No messages yet"}
+                        {chat.last_message?.content || "No messages yet"}
                       </p>
                       
-                      {chat.unreadCount > 0 && (
+                      {chat.unread_count && chat.unread_count > 0 && (
                         <div className="ml-2 bg-primary text-primary-foreground text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center min-w-[20px]">
-                          {chat.unreadCount > 99 ? "99+" : chat.unreadCount}
+                          {chat.unread_count > 99 ? "99+" : chat.unread_count}
                         </div>
                       )}
                     </div>

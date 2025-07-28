@@ -16,31 +16,77 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import AvatarWithStatus from "@/components/ui/avatar-with-status";
-import { mockChats, mockUsers, mockMessages, Message } from "@/data/mockData";
+import { useAuth } from "@/hooks/useAuth";
+import { useChat, Message as ChatMessage } from "@/hooks/useChat";
+import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
 
 const Chat = () => {
   const { chatId } = useParams();
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { user } = useAuth();
+  const { chats, sendMessage: sendChatMessage, markMessagesAsRead } = useChat();
   const [message, setMessage] = useState("");
-  const [messages, setMessages] = useState<Message[]>([]);
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [isTyping, setIsTyping] = useState(false);
+  const [loading, setLoading] = useState(true);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   // Find the current chat
-  const chat = mockChats.find(c => c.id === chatId);
+  const chat = chats.find(c => c.id === chatId);
   
+  // Fetch messages for this chat
   useEffect(() => {
-    if (chat) {
-      // Load messages for this chat (using mock data)
-      if (chat.id === "chat1") {
-        setMessages(mockMessages);
-      } else {
-        setMessages([]);
+    const fetchMessages = async () => {
+      if (!chatId) return;
+      
+      setLoading(true);
+      try {
+        const { data: messagesData, error } = await supabase
+          .from('messages')
+          .select('*')
+          .eq('chat_id', chatId)
+          .order('created_at', { ascending: true });
+
+        if (error) throw error;
+        
+        // Get sender profiles for messages
+        let messagesWithSenders: ChatMessage[] = [];
+        if (messagesData) {
+          const senderIds = [...new Set(messagesData.map(m => m.sender_id))];
+          const { data: sendersData } = await supabase
+            .from('profiles')
+            .select('*')
+            .in('user_id', senderIds);
+
+          messagesWithSenders = messagesData.map(msg => ({
+            ...msg,
+            message_type: msg.message_type as 'text' | 'image' | 'voice' | 'payment',
+            sender: sendersData?.find(s => s.user_id === msg.sender_id)
+          }));
+        }
+
+        setMessages(messagesWithSenders || []);
+        
+        // Mark messages as read
+        if (user) {
+          await markMessagesAsRead(chatId);
+        }
+      } catch (error) {
+        console.error('Error fetching messages:', error);
+        toast({
+          title: "Error",
+          description: "Failed to load messages",
+          variant: "destructive",
+        });
+      } finally {
+        setLoading(false);
       }
-    }
-  }, [chat]);
+    };
+
+    fetchMessages();
+  }, [chatId, user]);
 
   useEffect(() => {
     scrollToBottom();
@@ -59,66 +105,70 @@ const Chat = () => {
   }
 
   const getChatDisplayInfo = () => {
-    if (chat.isGroup) {
+    if (!chat) return { name: "Unknown", avatar: "", isOnline: false, subtitle: "" };
+    
+    if (chat.is_group) {
       return {
         name: chat.name || "Group Chat",
         avatar: "",
         isOnline: false,
-        subtitle: `${chat.participants.length} members`
+        subtitle: `${chat.participants?.length || 0} members`
       };
     }
     
-    const otherParticipantId = chat.participants.find(id => id !== "current_user");
-    const otherUser = mockUsers.find(user => user.id === otherParticipantId);
+    const otherParticipant = chat.participants?.find(p => p.user_id !== user?.id);
     
     return {
-      name: otherUser?.name || "Unknown User",
-      avatar: otherUser?.avatar || "",
-      isOnline: otherUser?.isOnline || false,
-      subtitle: otherUser?.isOnline ? "Online" : otherUser?.lastSeen || "Offline"
+      name: otherParticipant?.name || "Unknown User",
+      avatar: otherParticipant?.avatar_url || "",
+      isOnline: otherParticipant?.is_online || false,
+      subtitle: otherParticipant?.is_online ? "Online" : otherParticipant?.last_seen || "Offline"
     };
   };
 
   const displayInfo = getChatDisplayInfo();
 
-  const sendMessage = () => {
-    if (!message.trim()) return;
+  const sendMessage = async () => {
+    if (!message.trim() || !chatId) return;
 
-    const newMessage: Message = {
-      id: `msg_${Date.now()}`,
-      senderId: "current_user",
-      content: message.trim(),
-      timestamp: new Date(),
-      isRead: false,
-      type: 'text'
-    };
-
-    setMessages(prev => [...prev, newMessage]);
-    setMessage("");
-
-    // Simulate typing indicator and response
-    setIsTyping(true);
-    setTimeout(() => {
-      setIsTyping(false);
+    try {
+      await sendChatMessage(chatId, message.trim());
+      setMessage("");
       
-      // Simulate a response for demo purposes
-      if (Math.random() > 0.5) {
-        const responseMessage: Message = {
-          id: `msg_${Date.now() + 1}`,
-          senderId: chat.participants.find(id => id !== "current_user") || "1",
-          content: getRandomResponse(),
-          timestamp: new Date(),
-          isRead: false,
-          type: 'text'
-        };
-        setMessages(prev => [...prev, responseMessage]);
-      }
-    }, 2000);
+      toast({
+        title: "Message sent",
+        description: "Your message has been delivered",
+      });
+      
+      // Refresh messages
+      const { data: newMessagesData } = await supabase
+        .from('messages')
+        .select('*')
+        .eq('chat_id', chatId)
+        .order('created_at', { ascending: true });
+        
+      if (newMessagesData) {
+        const senderIds = [...new Set(newMessagesData.map(m => m.sender_id))];
+        const { data: sendersData } = await supabase
+          .from('profiles')
+          .select('*')
+          .in('user_id', senderIds);
 
-    toast({
-      title: "Message sent",
-      description: "Your message has been delivered",
-    });
+        const messagesWithSenders = newMessagesData.map(msg => ({
+          ...msg,
+          message_type: msg.message_type as 'text' | 'image' | 'voice' | 'payment',
+          sender: sendersData?.find(s => s.user_id === msg.sender_id)
+        }));
+        
+        setMessages(messagesWithSenders);
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to send message",
+        variant: "destructive",
+      });
+    }
   };
 
   const getRandomResponse = () => {
@@ -133,14 +183,13 @@ const Chat = () => {
   };
 
   const handlePayment = () => {
-    const otherParticipantId = chat.participants.find(id => id !== "current_user");
-    const otherUser = mockUsers.find(user => user.id === otherParticipantId);
-    
-    navigate(`/pay/send?recipient=${otherUser?.name || 'Unknown'}&id=${otherParticipantId}`);
+    if (!chat) return;
+    const otherParticipant = chat.participants?.find(p => p.user_id !== user?.id);
+    navigate(`/pay/send?recipient=${otherParticipant?.name || 'Unknown'}&id=${otherParticipant?.user_id}`);
   };
 
-  const formatMessageTime = (timestamp: Date) => {
-    return timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  const formatMessageTime = (timestamp: string) => {
+    return new Date(timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   };
 
   const handleMediaAction = (type: string) => {
@@ -211,7 +260,11 @@ const Chat = () => {
 
       {/* Messages */}
       <div className="flex-1 overflow-y-auto p-4 space-y-4">
-        {messages.length === 0 ? (
+        {loading ? (
+          <div className="flex items-center justify-center h-full">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+          </div>
+        ) : messages.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-full text-center">
             <div className="bg-gradient-warm rounded-full p-6 mb-4">
               <Smile className="h-8 w-8 text-white" />
@@ -222,8 +275,8 @@ const Chat = () => {
         ) : (
           <>
             {messages.map((msg) => {
-              const isCurrentUser = msg.senderId === "current_user";
-              const sender = mockUsers.find(user => user.id === msg.senderId);
+              const isCurrentUser = msg.sender_id === user?.id;
+              const sender = msg.sender;
               
               return (
                 <div
@@ -241,7 +294,7 @@ const Chat = () => {
                         : "bg-card text-card-foreground rounded-bl-md"
                     )}
                   >
-                    {!isCurrentUser && chat.isGroup && (
+                    {!isCurrentUser && chat?.is_group && (
                       <p className="text-xs font-semibold mb-1 text-primary">
                         {sender?.name || "Unknown"}
                       </p>
@@ -251,13 +304,13 @@ const Chat = () => {
                       "flex items-center justify-end space-x-1 mt-1",
                       isCurrentUser ? "text-primary-foreground/70" : "text-muted-foreground"
                     )}>
-                      <span className="text-xs">{formatMessageTime(msg.timestamp)}</span>
+                      <span className="text-xs">{formatMessageTime(msg.created_at)}</span>
                       {isCurrentUser && (
                         <div className="flex">
                           <div className="w-1 h-1 bg-current rounded-full opacity-60" />
                           <div className={cn(
                             "w-1 h-1 bg-current rounded-full ml-0.5",
-                            msg.isRead ? "opacity-100" : "opacity-60"
+                            msg.is_read ? "opacity-100" : "opacity-60"
                           )} />
                         </div>
                       )}
@@ -304,7 +357,7 @@ const Chat = () => {
             >
               <Paperclip className="h-4 w-4" />
             </Button>
-            {!chat.isGroup && (
+            {!chat?.is_group && (
               <Button 
                 variant="ghost" 
                 size="icon" 
