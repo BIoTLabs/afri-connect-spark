@@ -6,9 +6,6 @@ import {
   Video, 
   MoreVertical, 
   Send, 
-  Paperclip, 
-  Mic, 
-  Image,
   DollarSign,
   Smile
 } from "lucide-react";
@@ -20,17 +17,27 @@ import { useAuth } from "@/hooks/useAuth";
 import { useChat, Message as ChatMessage } from "@/hooks/useChat";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
+import { MessageItem } from "@/components/MessageItem";
+import { VoiceRecorder } from "@/components/VoiceRecorder";
+import { FileUpload } from "@/components/FileUpload";
 
 const Chat = () => {
   const { chatId } = useParams();
   const navigate = useNavigate();
   const { toast } = useToast();
   const { user } = useAuth();
-  const { chats, sendMessage: sendChatMessage, markMessagesAsRead } = useChat();
+  const { 
+    chats, 
+    sendMessage: sendChatMessage, 
+    sendFileMessage,
+    sendVoiceMessage,
+    markMessagesAsRead 
+  } = useChat();
   const [message, setMessage] = useState("");
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [isTyping, setIsTyping] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [isUploading, setIsUploading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   // Find the current chat
@@ -88,6 +95,50 @@ const Chat = () => {
     fetchMessages();
   }, [chatId, user]);
 
+  // Set up real-time message subscription
+  useEffect(() => {
+    if (!chatId) return;
+
+    const channel = supabase
+      .channel(`messages:${chatId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'messages',
+          filter: `chat_id=eq.${chatId}`,
+        },
+        async (payload) => {
+          // Get sender profile for the new message
+          const { data: senderData } = await supabase
+            .from('profiles')
+            .select('*')
+            .eq('user_id', payload.new.sender_id)
+            .single();
+
+          const newMessage: ChatMessage = {
+            id: payload.new.id,
+            chat_id: payload.new.chat_id,
+            sender_id: payload.new.sender_id,
+            content: payload.new.content,
+            message_type: payload.new.message_type as 'text' | 'image' | 'voice' | 'payment',
+            media_url: payload.new.media_url,
+            is_read: payload.new.is_read,
+            created_at: payload.new.created_at,
+            sender: senderData || undefined
+          };
+
+          setMessages(prev => [...prev, newMessage]);
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [chatId]);
+
   useEffect(() => {
     scrollToBottom();
   }, [messages]);
@@ -128,7 +179,7 @@ const Chat = () => {
 
   const displayInfo = getChatDisplayInfo();
 
-  const sendMessage = async () => {
+  const sendTextMessage = async () => {
     if (!message.trim() || !chatId) return;
 
     try {
@@ -139,29 +190,6 @@ const Chat = () => {
         title: "Message sent",
         description: "Your message has been delivered",
       });
-      
-      // Refresh messages
-      const { data: newMessagesData } = await supabase
-        .from('messages')
-        .select('*')
-        .eq('chat_id', chatId)
-        .order('created_at', { ascending: true });
-        
-      if (newMessagesData) {
-        const senderIds = [...new Set(newMessagesData.map(m => m.sender_id))];
-        const { data: sendersData } = await supabase
-          .from('profiles')
-          .select('*')
-          .in('user_id', senderIds);
-
-        const messagesWithSenders = newMessagesData.map(msg => ({
-          ...msg,
-          message_type: msg.message_type as 'text' | 'image' | 'voice' | 'payment',
-          sender: sendersData?.find(s => s.user_id === msg.sender_id)
-        }));
-        
-        setMessages(messagesWithSenders);
-      }
     } catch (error) {
       toast({
         title: "Error",
@@ -171,32 +199,52 @@ const Chat = () => {
     }
   };
 
-  const getRandomResponse = () => {
-    const responses = [
-      "Thanks for your message!",
-      "Got it, will get back to you soon.",
-      "Sounds good!",
-      "Let me check and respond.",
-      "Thanks for letting me know."
-    ];
-    return responses[Math.floor(Math.random() * responses.length)];
+  const handleFileUpload = async (file: File) => {
+    if (!chatId) return;
+
+    setIsUploading(true);
+    try {
+      await sendFileMessage(chatId, file);
+      toast({
+        title: "File sent",
+        description: "Your file has been uploaded and sent",
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to send file",
+        variant: "destructive",
+      });
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
+  const handleVoiceRecording = async (audioBlob: Blob) => {
+    if (!chatId) return;
+
+    setIsUploading(true);
+    try {
+      await sendVoiceMessage(chatId, audioBlob);
+      toast({
+        title: "Voice message sent",
+        description: "Your voice message has been sent",
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to send voice message",
+        variant: "destructive",
+      });
+    } finally {
+      setIsUploading(false);
+    }
   };
 
   const handlePayment = () => {
     if (!chat) return;
     const otherParticipant = chat.participants?.find(p => p.user_id !== user?.id);
     navigate(`/pay/send?recipient=${otherParticipant?.name || 'Unknown'}&id=${otherParticipant?.user_id}`);
-  };
-
-  const formatMessageTime = (timestamp: string) => {
-    return new Date(timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-  };
-
-  const handleMediaAction = (type: string) => {
-    toast({
-      title: "Feature coming soon",
-      description: `${type} sharing will be available in the next update`,
-    });
   };
 
   const handleCall = (type: 'voice' | 'video') => {
@@ -274,51 +322,13 @@ const Chat = () => {
           </div>
         ) : (
           <>
-            {messages.map((msg) => {
-              const isCurrentUser = msg.sender_id === user?.id;
-              const sender = msg.sender;
-              
-              return (
-                <div
-                  key={msg.id}
-                  className={cn(
-                    "flex",
-                    isCurrentUser ? "justify-end" : "justify-start"
-                  )}
-                >
-                  <div
-                    className={cn(
-                      "max-w-[85%] px-4 py-2 rounded-2xl shadow-soft",
-                      isCurrentUser 
-                        ? "bg-gradient-primary text-primary-foreground rounded-br-md" 
-                        : "bg-card text-card-foreground rounded-bl-md"
-                    )}
-                  >
-                    {!isCurrentUser && chat?.is_group && (
-                      <p className="text-xs font-semibold mb-1 text-primary">
-                        {sender?.name || "Unknown"}
-                      </p>
-                    )}
-                    <p className="text-sm">{msg.content}</p>
-                    <div className={cn(
-                      "flex items-center justify-end space-x-1 mt-1",
-                      isCurrentUser ? "text-primary-foreground/70" : "text-muted-foreground"
-                    )}>
-                      <span className="text-xs">{formatMessageTime(msg.created_at)}</span>
-                      {isCurrentUser && (
-                        <div className="flex">
-                          <div className="w-1 h-1 bg-current rounded-full opacity-60" />
-                          <div className={cn(
-                            "w-1 h-1 bg-current rounded-full ml-0.5",
-                            msg.is_read ? "opacity-100" : "opacity-60"
-                          )} />
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              );
-            })}
+            {messages.map((msg) => (
+              <MessageItem
+                key={msg.id}
+                message={msg}
+                isOwnMessage={msg.sender_id === user?.id}
+              />
+            ))}
             
             {isTyping && (
               <div className="flex justify-start">
@@ -327,6 +337,17 @@ const Chat = () => {
                     <div className="w-2 h-2 bg-muted-foreground rounded-full animate-bounce" />
                     <div className="w-2 h-2 bg-muted-foreground rounded-full animate-bounce" style={{ animationDelay: '0.1s' }} />
                     <div className="w-2 h-2 bg-muted-foreground rounded-full animate-bounce" style={{ animationDelay: '0.2s' }} />
+                  </div>
+                </div>
+              </div>
+            )}
+            
+            {isUploading && (
+              <div className="flex justify-end">
+                <div className="bg-gradient-primary text-primary-foreground px-4 py-2 rounded-2xl rounded-br-md shadow-soft">
+                  <div className="flex items-center space-x-2">
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-current"></div>
+                    <span className="text-sm">Uploading...</span>
                   </div>
                 </div>
               </div>
@@ -341,28 +362,19 @@ const Chat = () => {
       <div className="sticky bottom-0 bg-card border-t border-border p-4">
         <div className="flex items-end space-x-2">
           <div className="flex space-x-1">
-            <Button 
-              variant="ghost" 
-              size="icon" 
-              onClick={() => handleMediaAction("Photo")}
-              className="rounded-full h-8 w-8"
-            >
-              <Image className="h-4 w-4" />
-            </Button>
-            <Button 
-              variant="ghost" 
-              size="icon" 
-              onClick={() => handleMediaAction("File")}
-              className="rounded-full h-8 w-8"
-            >
-              <Paperclip className="h-4 w-4" />
-            </Button>
+            <FileUpload
+              onFileSelected={handleFileUpload}
+              isDisabled={isUploading}
+              accept="image/*,video/*,audio/*,.pdf,.doc,.docx,.txt"
+              maxSize={10}
+            />
             {!chat?.is_group && (
               <Button 
                 variant="ghost" 
-                size="icon" 
+                size="sm" 
                 onClick={handlePayment}
-                className="rounded-full h-8 w-8 text-accent hover:bg-accent/10"
+                disabled={isUploading}
+                className="text-accent hover:bg-accent/10"
               >
                 <DollarSign className="h-4 w-4" />
               </Button>
@@ -375,28 +387,26 @@ const Chat = () => {
                 value={message}
                 onChange={(e) => setMessage(e.target.value)}
                 placeholder="Type a message..."
-                onKeyPress={(e) => e.key === 'Enter' && sendMessage()}
+                onKeyPress={(e) => e.key === 'Enter' && sendTextMessage()}
+                disabled={isUploading}
                 className="border-0 bg-muted/50 rounded-full focus-visible:ring-2 focus-visible:ring-primary/20"
               />
             </div>
             
             {message.trim() ? (
               <Button 
-                onClick={sendMessage}
+                onClick={sendTextMessage}
                 size="icon"
+                disabled={isUploading}
                 className="bg-gradient-primary hover:bg-gradient-sunset shadow-warm rounded-full h-10 w-10"
               >
                 <Send className="h-4 w-4" />
               </Button>
             ) : (
-              <Button 
-                variant="ghost" 
-                size="icon" 
-                onClick={() => handleMediaAction("Voice note")}
-                className="rounded-full h-10 w-10"
-              >
-                <Mic className="h-4 w-4" />
-              </Button>
+              <VoiceRecorder
+                onVoiceRecorded={handleVoiceRecording}
+                isDisabled={isUploading}
+              />
             )}
           </div>
         </div>

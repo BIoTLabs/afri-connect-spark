@@ -127,7 +127,12 @@ export const useChat = () => {
   };
 
   // Send a message
-  const sendMessage = async (chatId: string, content: string, messageType: 'text' | 'image' | 'voice' | 'payment' = 'text') => {
+  const sendMessage = async (
+    chatId: string, 
+    content: string, 
+    messageType: 'text' | 'image' | 'voice' | 'payment' = 'text',
+    mediaUrl?: string
+  ) => {
     if (!user) return;
 
     try {
@@ -138,6 +143,7 @@ export const useChat = () => {
           sender_id: user.id,
           content,
           message_type: messageType,
+          media_url: mediaUrl,
         })
         .select()
         .single();
@@ -153,6 +159,55 @@ export const useChat = () => {
       return data;
     } catch (error) {
       console.error('Error sending message:', error);
+      throw error;
+    }
+  };
+
+  // Upload file to storage
+  const uploadFile = async (file: File, bucket: 'chat-files' | 'voice-messages'): Promise<string> => {
+    if (!user) throw new Error('User not authenticated');
+
+    const fileExt = file.name.split('.').pop();
+    const fileName = `${user.id}/${Date.now()}.${fileExt}`;
+    
+    const { data, error } = await supabase.storage
+      .from(bucket)
+      .upload(fileName, file);
+
+    if (error) throw error;
+
+    const { data: { publicUrl } } = supabase.storage
+      .from(bucket)
+      .getPublicUrl(fileName);
+
+    return publicUrl;
+  };
+
+  // Send file message
+  const sendFileMessage = async (chatId: string, file: File, content?: string) => {
+    try {
+      const mediaUrl = await uploadFile(file, 'chat-files');
+      const messageType = file.type.startsWith('image/') ? 'image' : 'text';
+      
+      return await sendMessage(chatId, content || file.name, messageType, mediaUrl);
+    } catch (error) {
+      console.error('Error sending file message:', error);
+      throw error;
+    }
+  };
+
+  // Send voice message
+  const sendVoiceMessage = async (chatId: string, audioBlob: Blob) => {
+    try {
+      const audioFile = new File([audioBlob], `voice-${Date.now()}.webm`, {
+        type: 'audio/webm'
+      });
+      
+      const mediaUrl = await uploadFile(audioFile, 'voice-messages');
+      
+      return await sendMessage(chatId, 'Voice message', 'voice', mediaUrl);
+    } catch (error) {
+      console.error('Error sending voice message:', error);
       throw error;
     }
   };
@@ -265,6 +320,8 @@ export const useChat = () => {
     profiles,
     loading,
     sendMessage,
+    sendFileMessage,
+    sendVoiceMessage,
     createChat,
     markMessagesAsRead,
     fetchChats,
