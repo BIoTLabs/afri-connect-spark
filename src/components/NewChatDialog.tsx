@@ -41,15 +41,21 @@ export const NewChatDialog = ({ children }: NewChatDialogProps) => {
   });
 
   const handleContactToggle = (userId: string) => {
-    setSelectedContacts(prev => 
-      prev.includes(userId) 
+    console.log('Toggling contact:', userId);
+    setSelectedContacts(prev => {
+      const newSelection = prev.includes(userId) 
         ? prev.filter(id => id !== userId)
-        : [...prev, userId]
-    );
+        : [...prev, userId];
+      console.log('Selected contacts after toggle:', newSelection);
+      return newSelection;
+    });
   };
 
   const handleCreateChat = async (isGroup: boolean = false) => {
+    console.log('Creating chat - isGroup:', isGroup, 'selectedContacts:', selectedContacts);
+    
     if (selectedContacts.length === 0) {
+      console.log('No contacts selected, showing error');
       toast({
         title: "No contacts selected",
         description: "Please select at least one contact to start a chat.",
@@ -154,9 +160,36 @@ export const NewChatDialog = ({ children }: NewChatDialogProps) => {
                   <div
                     key={contact.id}
                     className="flex items-center space-x-3 p-2 rounded-lg hover:bg-muted cursor-pointer"
-                    onClick={() => {
-                      setSelectedContacts([contact.user_id]);
-                      handleCreateChat(false);
+                    onClick={async () => {
+                      console.log('Direct chat contact clicked:', contact.user_id);
+                      setIsCreating(true);
+                      try {
+                        const chat = await createChat([contact.user_id], false);
+                        if (chat) {
+                          toast({
+                            title: "Chat created successfully",
+                            description: "New chat started",
+                          });
+                          
+                          // Reset form and close dialog
+                          setSelectedContacts([]);
+                          setGroupName("");
+                          setSearchQuery("");
+                          setOpen(false);
+                          
+                          // Navigate to the new chat
+                          navigate(`/chat/${chat.id}`);
+                        }
+                      } catch (error) {
+                        console.error('Error creating direct chat:', error);
+                        toast({
+                          title: "Failed to create chat",
+                          description: "Please try again later.",
+                          variant: "destructive",
+                        });
+                      } finally {
+                        setIsCreating(false);
+                      }
                     }}
                   >
                     <AvatarWithStatus

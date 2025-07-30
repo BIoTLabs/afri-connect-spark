@@ -214,10 +214,16 @@ export const useChat = () => {
 
   // Create a new chat
   const createChat = async (participantIds: string[], isGroup: boolean = false, name?: string) => {
-    if (!user) return;
+    console.log('createChat called with:', { participantIds, isGroup, name, userId: user?.id });
+    
+    if (!user) {
+      console.log('No user found, cannot create chat');
+      return;
+    }
 
     try {
       // Create chat
+      console.log('Creating chat in database...');
       const { data: chat, error: chatError } = await supabase
         .from('chats')
         .insert({
@@ -228,10 +234,17 @@ export const useChat = () => {
         .select()
         .single();
 
-      if (chatError) throw chatError;
+      if (chatError) {
+        console.log('Chat creation error:', chatError);
+        throw chatError;
+      }
+
+      console.log('Chat created successfully:', chat);
 
       // Add participants (including creator)
       const participants = [user.id, ...participantIds.filter(id => id !== user.id)];
+      console.log('Adding participants:', participants);
+      
       const { error: participantsError } = await supabase
         .from('chat_participants')
         .insert(
@@ -241,9 +254,14 @@ export const useChat = () => {
           }))
         );
 
-      if (participantsError) throw participantsError;
+      if (participantsError) {
+        console.log('Participants creation error:', participantsError);
+        throw participantsError;
+      }
 
+      console.log('Participants added successfully');
       await fetchChats(); // Refresh chats
+      console.log('Chat creation completed successfully');
       return chat;
     } catch (error) {
       console.error('Error creating chat:', error);
