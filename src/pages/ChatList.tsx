@@ -1,9 +1,10 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
-import { Search, Plus, MessageCircle } from "lucide-react";
+import { Search, Plus, MessageCircle, LogOut } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import AvatarWithStatus from "@/components/ui/avatar-with-status";
+import { NewChatDialog } from "@/components/NewChatDialog";
 import { useAuth } from "@/hooks/useAuth";
 import { useChat } from "@/hooks/useChat";
 import { cn } from "@/lib/utils";
@@ -75,14 +76,26 @@ const ChatList = () => {
               <p className="text-sm text-muted-foreground">Stay connected, grow together</p>
             </div>
             
-            <Button 
-              size="icon" 
-              onClick={signOut}
-              variant="outline"
-              className="rounded-full"
-            >
-              <Plus className="h-5 w-5" />
-            </Button>
+            <div className="flex items-center gap-2">
+              <NewChatDialog>
+                <Button 
+                  size="icon" 
+                  variant="outline"
+                  className="rounded-full"
+                >
+                  <Plus className="h-5 w-5" />
+                </Button>
+              </NewChatDialog>
+              
+              <Button 
+                size="icon" 
+                onClick={signOut}
+                variant="outline"
+                className="rounded-full"
+              >
+                <LogOut className="h-4 w-4" />
+              </Button>
+            </div>
           </div>
           
           {/* Search Bar */}
@@ -111,10 +124,12 @@ const ChatList = () => {
             <p className="text-muted-foreground mb-6">
               {searchQuery ? "Try a different search term" : "Start a conversation with someone"}
             </p>
-            <Button className="bg-gradient-primary hover:bg-gradient-sunset shadow-warm">
-              <Plus className="h-4 w-4 mr-2" />
-              New Chat
-            </Button>
+            <NewChatDialog>
+              <Button className="bg-gradient-primary hover:bg-gradient-sunset shadow-warm">
+                <Plus className="h-4 w-4 mr-2" />
+                New Chat
+              </Button>
+            </NewChatDialog>
           </div>
         ) : (
           <div className="space-y-1 p-2">
