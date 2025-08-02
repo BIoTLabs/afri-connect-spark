@@ -224,12 +224,17 @@ export const useChat = () => {
     try {
       // Create chat
       console.log('Creating chat in database...');
+      
+      // Get current auth user to ensure RLS policy compliance
+      const { data: { user: authUser } } = await supabase.auth.getUser();
+      console.log('Auth user:', authUser?.id, 'Hook user:', user.id);
+      
       const { data: chat, error: chatError } = await supabase
         .from('chats')
         .insert({
           is_group: isGroup,
           name,
-          created_by: user.id,
+          created_by: authUser?.id || user.id,
         })
         .select()
         .single();
