@@ -222,19 +222,30 @@ export const useChat = () => {
     }
 
     try {
+      // Get current auth session to debug authentication
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+      console.log('Current session:', session?.user?.id, 'Session error:', sessionError);
+      console.log('Auth token exists:', !!session?.access_token);
+      
+      // Check if user is properly authenticated
+      const { data: { user: authUser }, error: userError } = await supabase.auth.getUser();
+      console.log('Auth user check:', authUser?.id, 'User error:', userError);
+      
+      if (!authUser) {
+        console.log('User not authenticated, cannot create chat');
+        throw new Error('User not authenticated');
+      }
+
       // Create chat
       console.log('Creating chat in database...');
-      
-      // Get current auth user to ensure RLS policy compliance
-      const { data: { user: authUser } } = await supabase.auth.getUser();
-      console.log('Auth user:', authUser?.id, 'Hook user:', user.id);
+      console.log('Using user ID:', authUser.id, 'for created_by field');
       
       const { data: chat, error: chatError } = await supabase
         .from('chats')
         .insert({
           is_group: isGroup,
           name,
-          created_by: authUser?.id || user.id,
+          created_by: authUser.id,
         })
         .select()
         .single();
