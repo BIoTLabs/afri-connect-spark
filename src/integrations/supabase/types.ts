@@ -152,6 +152,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      get_current_user_id: {
+        Args: Record<PropertyKey, never>
+        Returns: string
+      }
       is_chat_participant: {
         Args: { chat_id_param: string; user_id_param: string }
         Returns: boolean
