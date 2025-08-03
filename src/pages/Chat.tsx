@@ -7,7 +7,8 @@ import {
   MoreVertical, 
   Send, 
   DollarSign,
-  Smile
+  Smile,
+  Mic
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -20,6 +21,10 @@ import { cn } from "@/lib/utils";
 import { MessageItem } from "@/components/MessageItem";
 import { VoiceRecorder } from "@/components/VoiceRecorder";
 import { FileUpload } from "@/components/FileUpload";
+import VoiceInterface from "@/components/VoiceInterface";
+import VideoCall from "@/components/VideoCall";
+import NotificationSystem from "@/components/NotificationSystem";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 const Chat = () => {
   const { chatId } = useParams();
@@ -38,6 +43,8 @@ const Chat = () => {
   const [isTyping, setIsTyping] = useState(false);
   const [loading, setLoading] = useState(true);
   const [isUploading, setIsUploading] = useState(false);
+  const [showVideoCall, setShowVideoCall] = useState(false);
+  const [showVoiceInterface, setShowVoiceInterface] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   // Find the current chat
@@ -248,10 +255,11 @@ const Chat = () => {
   };
 
   const handleCall = (type: 'voice' | 'video') => {
-    toast({
-      title: `${type === 'voice' ? 'Voice' : 'Video'} call`,
-      description: `Initiating ${type} call with ${displayInfo.name}...`,
-    });
+    if (type === 'video') {
+      setShowVideoCall(true);
+    } else {
+      setShowVoiceInterface(true);
+    }
   };
 
   return (
@@ -283,19 +291,22 @@ const Chat = () => {
           </div>
           
           <div className="flex items-center space-x-2">
+            <NotificationSystem />
             <Button 
               variant="ghost" 
               size="icon" 
               onClick={() => handleCall('voice')}
               className="rounded-full"
+              title="AI Voice Chat"
             >
-              <Phone className="h-4 w-4" />
+              <Mic className="h-4 w-4" />
             </Button>
             <Button 
               variant="ghost" 
               size="icon" 
               onClick={() => handleCall('video')}
               className="rounded-full"
+              title="Video Call"
             >
               <Video className="h-4 w-4" />
             </Button>
@@ -411,6 +422,33 @@ const Chat = () => {
           </div>
         </div>
       </div>
+
+      {/* Video Call Dialog */}
+      {showVideoCall && (
+        <Dialog open={showVideoCall} onOpenChange={setShowVideoCall}>
+          <DialogContent className="max-w-4xl w-full h-[80vh]">
+            <DialogHeader>
+              <DialogTitle>Video Call with {displayInfo.name}</DialogTitle>
+            </DialogHeader>
+            <VideoCall 
+              chatId={chatId!} 
+              onCallEnd={() => setShowVideoCall(false)} 
+            />
+          </DialogContent>
+        </Dialog>
+      )}
+
+      {/* Voice Interface Dialog */}
+      {showVoiceInterface && (
+        <Dialog open={showVoiceInterface} onOpenChange={setShowVoiceInterface}>
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle>AI Voice Assistant</DialogTitle>
+            </DialogHeader>
+            <VoiceInterface onSpeakingChange={(speaking) => setIsTyping(speaking)} />
+          </DialogContent>
+        </Dialog>
+      )}
     </div>
   );
 };
