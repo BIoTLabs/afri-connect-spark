@@ -14,6 +14,59 @@ export type Database = {
   }
   public: {
     Tables: {
+      auto_save_rules: {
+        Row: {
+          amount: number | null
+          created_at: string
+          frequency: string
+          id: string
+          is_active: boolean
+          next_execution_date: string | null
+          percentage: number | null
+          rule_type: string
+          savings_account_id: string
+          trigger_condition: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          amount?: number | null
+          created_at?: string
+          frequency: string
+          id?: string
+          is_active?: boolean
+          next_execution_date?: string | null
+          percentage?: number | null
+          rule_type: string
+          savings_account_id: string
+          trigger_condition?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          amount?: number | null
+          created_at?: string
+          frequency?: string
+          id?: string
+          is_active?: boolean
+          next_execution_date?: string | null
+          percentage?: number | null
+          rule_type?: string
+          savings_account_id?: string
+          trigger_condition?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "auto_save_rules_savings_account_id_fkey"
+            columns: ["savings_account_id"]
+            isOneToOne: false
+            referencedRelation: "savings_accounts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       chat_participants: {
         Row: {
           chat_id: string
@@ -67,6 +120,66 @@ export type Database = {
           is_group?: boolean | null
           name?: string | null
           updated_at?: string | null
+        }
+        Relationships: []
+      }
+      kyc_verifications: {
+        Row: {
+          address: string
+          created_at: string
+          date_of_birth: string
+          document_back_url: string | null
+          document_front_url: string | null
+          document_number: string
+          document_type: string
+          full_name: string
+          id: string
+          occupation: string | null
+          phone_number: string
+          rejected_reason: string | null
+          selfie_url: string | null
+          status: string
+          updated_at: string
+          user_id: string
+          verified_at: string | null
+        }
+        Insert: {
+          address: string
+          created_at?: string
+          date_of_birth: string
+          document_back_url?: string | null
+          document_front_url?: string | null
+          document_number: string
+          document_type: string
+          full_name: string
+          id?: string
+          occupation?: string | null
+          phone_number: string
+          rejected_reason?: string | null
+          selfie_url?: string | null
+          status?: string
+          updated_at?: string
+          user_id: string
+          verified_at?: string | null
+        }
+        Update: {
+          address?: string
+          created_at?: string
+          date_of_birth?: string
+          document_back_url?: string | null
+          document_front_url?: string | null
+          document_number?: string
+          document_type?: string
+          full_name?: string
+          id?: string
+          occupation?: string | null
+          phone_number?: string
+          rejected_reason?: string | null
+          selfie_url?: string | null
+          status?: string
+          updated_at?: string
+          user_id?: string
+          verified_at?: string | null
         }
         Relationships: []
       }
@@ -147,11 +260,165 @@ export type Database = {
         }
         Relationships: []
       }
+      savings_accounts: {
+        Row: {
+          account_name: string
+          account_number: string
+          balance: number
+          created_at: string
+          id: string
+          interest_rate: number
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          account_name?: string
+          account_number: string
+          balance?: number
+          created_at?: string
+          id?: string
+          interest_rate?: number
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          account_name?: string
+          account_number?: string
+          balance?: number
+          created_at?: string
+          id?: string
+          interest_rate?: number
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      savings_goals: {
+        Row: {
+          created_at: string
+          current_amount: number
+          description: string | null
+          id: string
+          savings_account_id: string
+          status: string
+          target_amount: number
+          target_date: string | null
+          title: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          current_amount?: number
+          description?: string | null
+          id?: string
+          savings_account_id: string
+          status?: string
+          target_amount: number
+          target_date?: string | null
+          title: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          current_amount?: number
+          description?: string | null
+          id?: string
+          savings_account_id?: string
+          status?: string
+          target_amount?: number
+          target_date?: string | null
+          title?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "savings_goals_savings_account_id_fkey"
+            columns: ["savings_account_id"]
+            isOneToOne: false
+            referencedRelation: "savings_accounts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      savings_transactions: {
+        Row: {
+          amount: number
+          auto_save_rule_id: string | null
+          created_at: string
+          description: string | null
+          id: string
+          reference_number: string | null
+          savings_account_id: string
+          savings_goal_id: string | null
+          status: string
+          transaction_type: string
+          user_id: string
+        }
+        Insert: {
+          amount: number
+          auto_save_rule_id?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          reference_number?: string | null
+          savings_account_id: string
+          savings_goal_id?: string | null
+          status?: string
+          transaction_type: string
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          auto_save_rule_id?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          reference_number?: string | null
+          savings_account_id?: string
+          savings_goal_id?: string | null
+          status?: string
+          transaction_type?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "savings_transactions_auto_save_rule_id_fkey"
+            columns: ["auto_save_rule_id"]
+            isOneToOne: false
+            referencedRelation: "auto_save_rules"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "savings_transactions_savings_account_id_fkey"
+            columns: ["savings_account_id"]
+            isOneToOne: false
+            referencedRelation: "savings_accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "savings_transactions_savings_goal_id_fkey"
+            columns: ["savings_goal_id"]
+            isOneToOne: false
+            referencedRelation: "savings_goals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
+      generate_account_number: {
+        Args: Record<PropertyKey, never>
+        Returns: string
+      }
       get_current_user_id: {
         Args: Record<PropertyKey, never>
         Returns: string
