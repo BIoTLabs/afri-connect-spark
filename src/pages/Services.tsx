@@ -18,10 +18,14 @@ const Services = () => {
   const { toast } = useToast();
 
   const handleServiceClick = (serviceName: string) => {
-    toast({
-      title: "Feature coming soon",
-      description: `${serviceName} will be available in our next update`,
-    });
+    if (serviceName === 'Smart Savings') {
+      window.location.href = '/smart-savings';
+    } else {
+      toast({
+        title: "Feature coming soon",
+        description: `${serviceName} will be available in our next update`,
+      });
+    }
   };
 
   const services = [
