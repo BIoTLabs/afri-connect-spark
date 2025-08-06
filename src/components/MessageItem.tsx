@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Message } from '@/hooks/useChat';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { AudioPlayer } from './AudioPlayer';
@@ -12,6 +12,9 @@ interface MessageItemProps {
 }
 
 export const MessageItem: React.FC<MessageItemProps> = ({ message, isOwnMessage }) => {
+  const [imageUrl, setImageUrl] = useState<string | null>(null);
+  const [voiceUrl, setVoiceUrl] = useState<string | null>(null);
+
   const formatTime = (timestamp: string) => {
     return new Date(timestamp).toLocaleTimeString('en-US', {
       hour: '2-digit',
@@ -19,11 +22,37 @@ export const MessageItem: React.FC<MessageItemProps> = ({ message, isOwnMessage 
     });
   };
 
+  // Load signed URLs for media
+  useEffect(() => {
+    const loadMediaUrls = async () => {
+      if (message.message_type === 'image' && message.media_url && !message.media_url.startsWith('http')) {
+        const signedUrl = await getSignedUrl(message.media_url, 'chat-files');
+        setImageUrl(signedUrl);
+      } else if (message.message_type === 'image' && message.media_url?.startsWith('http')) {
+        setImageUrl(message.media_url);
+      }
+
+      if (message.message_type === 'voice' && message.media_url && !message.media_url.startsWith('http')) {
+        const signedUrl = await getSignedUrl(message.media_url, 'voice-messages');
+        setVoiceUrl(signedUrl);
+      } else if (message.message_type === 'voice' && message.media_url?.startsWith('http')) {
+        setVoiceUrl(message.media_url);
+      }
+    };
+
+    loadMediaUrls();
+  }, [message.media_url, message.message_type]);
+
   const downloadFile = async (mediaUrl: string, fileName: string) => {
     try {
+      // For private storage, extract the file path
+      const filePath = mediaUrl.startsWith('http') 
+        ? mediaUrl.split('/').slice(-2).join('/') // Extract user_id/filename from URL
+        : mediaUrl; // Already a file path
+        
       const { data } = await supabase.storage
         .from('chat-files')
-        .download(mediaUrl.replace('chat-files/', ''));
+        .download(filePath);
       
       if (data) {
         const url = URL.createObjectURL(data);
@@ -37,6 +66,20 @@ export const MessageItem: React.FC<MessageItemProps> = ({ message, isOwnMessage 
       }
     } catch (error) {
       console.error('Error downloading file:', error);
+    }
+  };
+
+  const getSignedUrl = async (filePath: string, bucket: 'chat-files' | 'voice-messages' = 'chat-files') => {
+    try {
+      const { data, error } = await supabase.storage
+        .from(bucket)
+        .createSignedUrl(filePath, 3600); // 1 hour expiry
+      
+      if (error) throw error;
+      return data.signedUrl;
+    } catch (error) {
+      console.error('Error getting signed URL:', error);
+      return null;
     }
   };
 
@@ -64,17 +107,17 @@ export const MessageItem: React.FC<MessageItemProps> = ({ message, isOwnMessage 
   const renderMessageContent = () => {
     switch (message.message_type) {
       case 'voice':
-        return message.media_url ? (
-          <AudioPlayer audioUrl={message.media_url} className="max-w-xs" />
+        return voiceUrl ? (
+          <AudioPlayer audioUrl={voiceUrl} className="max-w-xs" />
         ) : (
-          <p className="text-muted-foreground italic">Voice message unavailable</p>
+          <p className="text-muted-foreground italic">Loading voice message...</p>
         );
       
       case 'image':
-        return message.media_url ? (
+        return imageUrl ? (
           <div className="max-w-sm">
             <img 
-              src={message.media_url} 
+              src={imageUrl} 
               alt="Shared image"
               className="rounded-lg max-w-full h-auto"
               loading="lazy"
@@ -84,7 +127,7 @@ export const MessageItem: React.FC<MessageItemProps> = ({ message, isOwnMessage 
             )}
           </div>
         ) : (
-          <p className="text-muted-foreground italic">Image unavailable</p>
+          <p className="text-muted-foreground italic">Loading image...</p>
         );
       
       case 'payment':
@@ -101,8 +144,8 @@ export const MessageItem: React.FC<MessageItemProps> = ({ message, isOwnMessage 
       
       default:
         // Handle file attachments for text messages
-        if (message.media_url && message.media_url.includes('chat-files/')) {
-          const fileName = message.media_url.split('/').pop() || 'file';
+        if (message.media_url) {
+          const fileName = message.content || message.media_url.split('/').pop() || 'file';
           return (
             <div className="space-y-2">
               {message.content && <p>{message.content}</p>}

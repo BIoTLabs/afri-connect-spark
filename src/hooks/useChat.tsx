@@ -176,11 +176,8 @@ export const useChat = () => {
 
     if (error) throw error;
 
-    const { data: { publicUrl } } = supabase.storage
-      .from(bucket)
-      .getPublicUrl(fileName);
-
-    return publicUrl;
+    // For private buckets, return the file path instead of public URL
+    return fileName;
   };
 
   // Send file message
@@ -219,6 +216,41 @@ export const useChat = () => {
     if (!user) {
       console.log('No user found, cannot create chat');
       return;
+    }
+
+    // For direct chats, check if chat already exists between the two users
+    if (!isGroup && participantIds.length === 1) {
+      const otherUserId = participantIds[0];
+      
+      // Check if a direct chat already exists between current user and the other user
+      const { data: existingChats, error: checkError } = await supabase
+        .from('chats')
+        .select(`
+          *,
+          chat_participants!inner(user_id)
+        `)
+        .eq('is_group', false);
+
+      if (checkError) {
+        console.error('Error checking existing chats:', checkError);
+      } else if (existingChats) {
+        // Find if there's a chat with exactly these two participants
+        for (const chat of existingChats) {
+          const { data: participants } = await supabase
+            .from('chat_participants')
+            .select('user_id')
+            .eq('chat_id', chat.id);
+
+          if (participants && participants.length === 2) {
+            const participantIds = participants.map(p => p.user_id);
+            if (participantIds.includes(user.id) && participantIds.includes(otherUserId)) {
+              console.log('Direct chat already exists, navigating to it');
+              await fetchChats(); // Refresh chats
+              return chat; // Return existing chat
+            }
+          }
+        }
+      }
     }
 
     try {
