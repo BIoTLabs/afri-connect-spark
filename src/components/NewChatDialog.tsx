@@ -253,7 +253,7 @@ export const NewChatDialog = ({ children }: NewChatDialogProps) => {
                   >
                     <Checkbox
                       checked={selectedContacts.includes(contact.user_id)}
-                      onChange={() => handleContactToggle(contact.user_id)}
+                      onCheckedChange={() => handleContactToggle(contact.user_id)}
                     />
                     <AvatarWithStatus
                       name={contact.name}
