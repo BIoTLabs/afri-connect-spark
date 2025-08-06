@@ -318,7 +318,7 @@ const Chat = () => {
       </div>
 
       {/* Messages */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-4">
+      <div className="flex-1 overflow-y-auto p-2 sm:p-4 space-y-2 sm:space-y-4">
         {loading ? (
           <div className="flex items-center justify-center h-full">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
@@ -370,7 +370,7 @@ const Chat = () => {
       </div>
 
       {/* Message Input */}
-      <div className="sticky bottom-0 bg-card border-t border-border p-4">
+      <div className="sticky bottom-0 bg-card border-t border-border p-2 sm:p-4 pb-safe">
         <div className="flex items-end space-x-2">
           <div className="flex space-x-1">
             <FileUpload

@@ -115,12 +115,14 @@ export const MessageItem: React.FC<MessageItemProps> = ({ message, isOwnMessage 
       
       case 'image':
         return imageUrl ? (
-          <div className="max-w-sm">
+          <div className="max-w-xs sm:max-w-sm md:max-w-md">
             <img 
               src={imageUrl} 
               alt="Shared image"
-              className="rounded-lg max-w-full h-auto"
+              className="rounded-lg w-full h-auto max-h-96 object-cover"
               loading="lazy"
+              onClick={() => window.open(imageUrl, '_blank')}
+              style={{ cursor: 'pointer' }}
             />
             {message.content && (
               <p className="mt-2 text-sm">{message.content}</p>
@@ -171,8 +173,8 @@ export const MessageItem: React.FC<MessageItemProps> = ({ message, isOwnMessage 
   };
 
   return (
-    <div className={`flex ${isOwnMessage ? 'justify-end' : 'justify-start'} mb-4`}>
-      <div className={`flex ${isOwnMessage ? 'flex-row-reverse' : 'flex-row'} items-start space-x-2 max-w-[70%]`}>
+    <div className={`flex ${isOwnMessage ? 'justify-end' : 'justify-start'} mb-4 px-2 sm:px-0`}>
+      <div className={`flex ${isOwnMessage ? 'flex-row-reverse' : 'flex-row'} items-start space-x-2 max-w-[85%] sm:max-w-[70%]`}>
         {!isOwnMessage && (
           <Avatar className="h-8 w-8">
             <AvatarImage src={message.sender?.avatar_url} />
