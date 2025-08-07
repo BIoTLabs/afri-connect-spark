@@ -173,12 +173,12 @@ export const MessageItem: React.FC<MessageItemProps> = ({ message, isOwnMessage 
   };
 
   return (
-    <div className={`flex ${isOwnMessage ? 'justify-end' : 'justify-start'} mb-4 px-2 sm:px-0`}>
+    <div className={`flex ${isOwnMessage ? 'justify-end' : 'justify-start'} mb-4 px-2 sm:px-0 message-bubble`}>
       <div className={`flex ${isOwnMessage ? 'flex-row-reverse' : 'flex-row'} items-start space-x-2 max-w-[85%] sm:max-w-[70%]`}>
         {!isOwnMessage && (
-          <Avatar className="h-8 w-8">
+          <Avatar className="h-8 w-8 ring-2 ring-background shadow-soft">
             <AvatarImage src={message.sender?.avatar_url} />
-            <AvatarFallback>
+            <AvatarFallback className="bg-gradient-warm text-white font-medium">
               {message.sender?.name?.charAt(0) || 'U'}
             </AvatarFallback>
           </Avatar>
@@ -186,22 +186,22 @@ export const MessageItem: React.FC<MessageItemProps> = ({ message, isOwnMessage 
         
         <div className={`${isOwnMessage ? 'mr-2' : 'ml-2'}`}>
           {!isOwnMessage && (
-            <div className="text-xs text-muted-foreground mb-1">
+            <div className="text-xs text-muted-foreground mb-1 font-medium">
               {message.sender?.name}
             </div>
           )}
           
           <div className={`
-            rounded-lg px-3 py-2 max-w-full
+            rounded-2xl px-4 py-3 max-w-full shadow-soft backdrop-blur-sm transition-all duration-200 hover:shadow-warm
             ${isOwnMessage 
-              ? 'bg-primary text-primary-foreground' 
-              : 'bg-muted'
+              ? 'bg-gradient-primary text-primary-foreground rounded-br-md' 
+              : 'bg-card/80 backdrop-blur-sm border border-border/50 rounded-bl-md'
             }
           `}>
             {renderMessageContent()}
           </div>
           
-          <div className={`text-xs text-muted-foreground mt-1 ${isOwnMessage ? 'text-right' : 'text-left'}`}>
+          <div className={`text-xs text-muted-foreground/70 mt-1 ${isOwnMessage ? 'text-right' : 'text-left'}`}>
             {formatTime(message.created_at)}
           </div>
         </div>

@@ -8,7 +8,8 @@ import {
   Send, 
   DollarSign,
   Smile,
-  Mic
+  Mic,
+  Palette
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -25,6 +26,9 @@ import VoiceInterface from "@/components/VoiceInterface";
 import VideoCall from "@/components/VideoCall";
 import NotificationSystem from "@/components/NotificationSystem";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { EmojiPickerComponent } from "@/components/EmojiPicker";
+import { ChatBackground } from "@/components/ChatBackground";
+import { ThemeToggle } from "@/components/ThemeToggle";
 
 const Chat = () => {
   const { chatId } = useParams();
@@ -262,163 +266,177 @@ const Chat = () => {
     }
   };
 
+  const handleEmojiSelect = (emoji: string) => {
+    setMessage(prev => prev + emoji);
+  };
+
   return (
-    <div className="flex flex-col h-screen bg-background">
-      {/* Header */}
-      <div className="sticky top-0 z-10 bg-card border-b border-border shadow-soft">
-        <div className="flex items-center justify-between px-4 py-3">
-          <div className="flex items-center space-x-3">
-            <Button 
-              variant="ghost" 
-              size="icon" 
-              onClick={() => navigate("/")}
-              className="rounded-full"
-            >
-              <ArrowLeft className="h-5 w-5" />
-            </Button>
-            
-            <AvatarWithStatus
-              name={displayInfo.name}
-              avatar={displayInfo.avatar}
-              isOnline={displayInfo.isOnline}
-              size="sm"
-            />
-            
-            <div>
-              <h2 className="font-semibold text-foreground">{displayInfo.name}</h2>
-              <p className="text-xs text-muted-foreground">{displayInfo.subtitle}</p>
-            </div>
-          </div>
-          
-          <div className="flex items-center space-x-2">
-            <NotificationSystem />
-            <Button 
-              variant="ghost" 
-              size="icon" 
-              onClick={() => handleCall('voice')}
-              className="rounded-full"
-              title="AI Voice Chat"
-            >
-              <Mic className="h-4 w-4" />
-            </Button>
-            <Button 
-              variant="ghost" 
-              size="icon" 
-              onClick={() => handleCall('video')}
-              className="rounded-full"
-              title="Video Call"
-            >
-              <Video className="h-4 w-4" />
-            </Button>
-            <Button variant="ghost" size="icon" className="rounded-full">
-              <MoreVertical className="h-4 w-4" />
-            </Button>
-          </div>
-        </div>
-      </div>
-
-      {/* Messages */}
-      <div className="flex-1 overflow-y-auto p-2 sm:p-4 space-y-2 sm:space-y-4">
-        {loading ? (
-          <div className="flex items-center justify-center h-full">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-          </div>
-        ) : messages.length === 0 ? (
-          <div className="flex flex-col items-center justify-center h-full text-center">
-            <div className="bg-gradient-warm rounded-full p-6 mb-4">
-              <Smile className="h-8 w-8 text-white" />
-            </div>
-            <h3 className="text-lg font-semibold mb-2">Start a conversation</h3>
-            <p className="text-muted-foreground">Send a message to get the conversation started!</p>
-          </div>
-        ) : (
-          <>
-            {messages.map((msg) => (
-              <MessageItem
-                key={msg.id}
-                message={msg}
-                isOwnMessage={msg.sender_id === user?.id}
-              />
-            ))}
-            
-            {isTyping && (
-              <div className="flex justify-start">
-                <div className="bg-card text-card-foreground px-4 py-2 rounded-2xl rounded-bl-md shadow-soft">
-                  <div className="flex space-x-1">
-                    <div className="w-2 h-2 bg-muted-foreground rounded-full animate-bounce" />
-                    <div className="w-2 h-2 bg-muted-foreground rounded-full animate-bounce" style={{ animationDelay: '0.1s' }} />
-                    <div className="w-2 h-2 bg-muted-foreground rounded-full animate-bounce" style={{ animationDelay: '0.2s' }} />
-                  </div>
-                </div>
-              </div>
-            )}
-            
-            {isUploading && (
-              <div className="flex justify-end">
-                <div className="bg-gradient-primary text-primary-foreground px-4 py-2 rounded-2xl rounded-br-md shadow-soft">
-                  <div className="flex items-center space-x-2">
-                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-current"></div>
-                    <span className="text-sm">Uploading...</span>
-                  </div>
-                </div>
-              </div>
-            )}
-            
-            <div ref={messagesEndRef} />
-          </>
-        )}
-      </div>
-
-      {/* Message Input */}
-      <div className="sticky bottom-0 bg-card border-t border-border p-2 sm:p-4 pb-safe">
-        <div className="flex items-end space-x-2">
-          <div className="flex space-x-1">
-            <FileUpload
-              onFileSelected={handleFileUpload}
-              isDisabled={isUploading}
-              accept="image/*,video/*,audio/*,.pdf,.doc,.docx,.txt"
-              maxSize={10}
-            />
-            {!chat?.is_group && (
+    <ChatBackground variant="pattern">
+      <div className="flex flex-col h-screen">
+        {/* Header */}
+        <div className="sticky top-0 z-10 glass shadow-warm border-b border-border/30">
+          <div className="flex items-center justify-between px-4 py-3">
+            <div className="flex items-center space-x-3">
               <Button 
                 variant="ghost" 
-                size="sm" 
-                onClick={handlePayment}
-                disabled={isUploading}
-                className="text-accent hover:bg-accent/10"
+                size="icon" 
+                onClick={() => navigate("/")}
+                className="rounded-full hover:bg-accent/20 hover:scale-105 transition-all duration-200"
               >
-                <DollarSign className="h-4 w-4" />
+                <ArrowLeft className="h-5 w-5" />
               </Button>
-            )}
-          </div>
-          
-          <div className="flex-1 flex items-end space-x-2">
-            <div className="flex-1">
-              <Input
-                value={message}
-                onChange={(e) => setMessage(e.target.value)}
-                placeholder="Type a message..."
-                onKeyPress={(e) => e.key === 'Enter' && sendTextMessage()}
-                disabled={isUploading}
-                className="border-0 bg-muted/50 rounded-full focus-visible:ring-2 focus-visible:ring-primary/20"
+              
+              <AvatarWithStatus
+                name={displayInfo.name}
+                avatar={displayInfo.avatar}
+                isOnline={displayInfo.isOnline}
+                size="sm"
               />
+              
+              <div>
+                <h2 className="font-semibold text-foreground">{displayInfo.name}</h2>
+                <p className="text-xs text-muted-foreground">{displayInfo.subtitle}</p>
+              </div>
             </div>
             
-            {message.trim() ? (
+            <div className="flex items-center space-x-1">
+              <NotificationSystem />
+              <ThemeToggle />
               <Button 
-                onClick={sendTextMessage}
-                size="icon"
-                disabled={isUploading}
-                className="bg-gradient-primary hover:bg-gradient-sunset shadow-warm rounded-full h-10 w-10"
+                variant="ghost" 
+                size="icon" 
+                onClick={() => handleCall('voice')}
+                className="rounded-full hover:bg-accent/20 hover:scale-105 transition-all duration-200"
+                title="AI Voice Chat"
               >
-                <Send className="h-4 w-4" />
+                <Mic className="h-4 w-4" />
               </Button>
-            ) : (
-              <VoiceRecorder
-                onVoiceRecorded={handleVoiceRecording}
+              <Button 
+                variant="ghost" 
+                size="icon" 
+                onClick={() => handleCall('video')}
+                className="rounded-full hover:bg-accent/20 hover:scale-105 transition-all duration-200"
+                title="Video Call"
+              >
+                <Video className="h-4 w-4" />
+              </Button>
+              <Button 
+                variant="ghost" 
+                size="icon" 
+                className="rounded-full hover:bg-accent/20 hover:scale-105 transition-all duration-200"
+              >
+                <MoreVertical className="h-4 w-4" />
+              </Button>
+            </div>
+          </div>
+        </div>
+
+        {/* Messages */}
+        <div className="flex-1 overflow-y-auto p-2 sm:p-4 space-y-3 sm:space-y-4 chat-scroll">
+          {loading ? (
+            <div className="flex items-center justify-center h-full">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+            </div>
+          ) : messages.length === 0 ? (
+            <div className="flex flex-col items-center justify-center h-full text-center">
+              <div className="bg-gradient-warm rounded-full p-6 mb-4 shadow-warm animate-float">
+                <Smile className="h-8 w-8 text-white" />
+              </div>
+              <h3 className="text-lg font-semibold mb-2">Start a conversation</h3>
+              <p className="text-muted-foreground">Send a message to get the conversation started!</p>
+            </div>
+          ) : (
+            <>
+              {messages.map((msg) => (
+                <MessageItem
+                  key={msg.id}
+                  message={msg}
+                  isOwnMessage={msg.sender_id === user?.id}
+                />
+              ))}
+              
+              {isTyping && (
+                <div className="flex justify-start animate-message-in">
+                  <div className="bg-card/80 backdrop-blur-sm text-card-foreground px-4 py-3 rounded-2xl rounded-bl-md shadow-soft border border-border/50">
+                    <div className="flex space-x-1">
+                      <div className="w-2 h-2 bg-muted-foreground rounded-full animate-bounce" />
+                      <div className="w-2 h-2 bg-muted-foreground rounded-full animate-bounce" style={{ animationDelay: '0.1s' }} />
+                      <div className="w-2 h-2 bg-muted-foreground rounded-full animate-bounce" style={{ animationDelay: '0.2s' }} />
+                    </div>
+                  </div>
+                </div>
+              )}
+              
+              {isUploading && (
+                <div className="flex justify-end animate-message-in">
+                  <div className="bg-gradient-primary text-primary-foreground px-4 py-3 rounded-2xl rounded-br-md shadow-warm">
+                    <div className="flex items-center space-x-2">
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-current"></div>
+                      <span className="text-sm">Uploading...</span>
+                    </div>
+                  </div>
+                </div>
+              )}
+              
+              <div ref={messagesEndRef} />
+            </>
+          )}
+        </div>
+
+        {/* Message Input */}
+        <div className="sticky bottom-0 glass border-t border-border/30 p-2 sm:p-4 pb-safe">
+          <div className="flex items-end space-x-2">
+            <div className="flex space-x-1">
+              <FileUpload
+                onFileSelected={handleFileUpload}
                 isDisabled={isUploading}
+                accept="image/*,video/*,audio/*,.pdf,.doc,.docx,.txt"
+                maxSize={10}
               />
-            )}
+              {!chat?.is_group && (
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  onClick={handlePayment}
+                  disabled={isUploading}
+                  className="text-accent hover:bg-accent/20 hover:scale-105 transition-all duration-200"
+                >
+                  <DollarSign className="h-4 w-4" />
+                </Button>
+              )}
+            </div>
+            
+            <div className="flex-1 flex items-end space-x-2">
+              <div className="flex-1 relative">
+                <Input
+                  value={message}
+                  onChange={(e) => setMessage(e.target.value)}
+                  placeholder="Type a message..."
+                  onKeyPress={(e) => e.key === 'Enter' && sendTextMessage()}
+                  disabled={isUploading}
+                  className="border-0 bg-card/50 backdrop-blur-sm rounded-full focus-visible:ring-2 focus-visible:ring-primary/20 pr-10 shadow-soft"
+                />
+                <div className="absolute right-2 top-1/2 transform -translate-y-1/2">
+                  <EmojiPickerComponent onEmojiSelect={handleEmojiSelect} />
+                </div>
+              </div>
+              
+              {message.trim() ? (
+                <Button 
+                  onClick={sendTextMessage}
+                  size="icon"
+                  disabled={isUploading}
+                  className="bg-gradient-primary hover:bg-gradient-sunset shadow-warm rounded-full h-10 w-10 hover:scale-105 transition-all duration-200 animate-pulse-glow"
+                >
+                  <Send className="h-4 w-4" />
+                </Button>
+              ) : (
+                <VoiceRecorder
+                  onVoiceRecorded={handleVoiceRecording}
+                  isDisabled={isUploading}
+                />
+              )}
+            </div>
           </div>
         </div>
       </div>
@@ -449,7 +467,7 @@ const Chat = () => {
           </DialogContent>
         </Dialog>
       )}
-    </div>
+    </ChatBackground>
   );
 };
 
