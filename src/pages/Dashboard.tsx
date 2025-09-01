@@ -16,10 +16,34 @@ import {
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { mockCryptoBalances, mockFiatBalance, mockTransactions } from "@/data/mockData";
+import { useBillsAndAirtime } from "@/hooks/useBillsAndAirtime";
 import { cn } from "@/lib/utils";
 
 const Dashboard = () => {
   const [showBalance, setShowBalance] = useState(true);
+  const { getTransactionHistory } = useBillsAndAirtime();
+
+  // Combine mock transactions with bills and airtime
+  const allTransactions = [
+    ...mockTransactions.map(t => ({
+      id: t.id,
+      type: t.type,
+      description: t.description,
+      amount: t.amount,
+      timestamp: t.timestamp,
+      status: t.status,
+      currency: t.currency
+    })),
+    ...getTransactionHistory().slice(0, 3).map(t => ({
+      id: t.id,
+      type: t.type,
+      description: t.description,
+      amount: t.amount,
+      timestamp: new Date(t.date),
+      status: t.status,
+      currency: 'NGN'
+    }))
+  ].sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime());
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-NG', {
@@ -165,12 +189,12 @@ const Dashboard = () => {
           
           <Card>
             <CardContent className="p-0">
-              {mockTransactions.slice(0, 5).map((transaction, index) => (
+              {allTransactions.slice(0, 5).map((transaction, index) => (
                 <div
                   key={transaction.id}
                   className={cn(
                     "flex items-center justify-between p-4 hover:bg-muted/50 transition-colors",
-                    index !== mockTransactions.slice(0, 5).length - 1 && "border-b border-border"
+                    index !== allTransactions.slice(0, 5).length - 1 && "border-b border-border"
                   )}
                 >
                   <div className="flex items-center space-x-3">
@@ -194,7 +218,8 @@ const Dashboard = () => {
                         : "text-success"
                     )}>
                       {transaction.type === 'sent' || transaction.type === 'bill' || transaction.type === 'airtime' ? '-' : '+'}
-                      {transaction.currency}{transaction.amount.toLocaleString()}
+                      {transaction.currency === 'NGN' ? '₦' : transaction.currency}
+                      {typeof transaction.amount === 'number' ? transaction.amount.toLocaleString() : transaction.amount}
                     </p>
                     <p className="text-xs text-muted-foreground capitalize">
                       {transaction.status}

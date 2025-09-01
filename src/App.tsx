@@ -15,6 +15,9 @@ import PayHub from "./pages/PayHub";
 import Services from "./pages/Services";
 import SmartSavings from "./pages/SmartSavings";
 import KYCOnboarding from "./pages/KYCOnboarding";
+import BillPayments from "./pages/BillPayments";
+import AirtimePurchase from "./pages/AirtimePurchase";
+import Transactions from "./pages/Transactions";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -37,9 +40,12 @@ const App = () => (
                     <Route path="/dashboard" element={<Dashboard />} />
                     <Route path="/pay/send" element={<SendMoney />} />
                     <Route path="/pay" element={<PayHub />} />
+                    <Route path="/pay/bills" element={<BillPayments />} />
+                    <Route path="/pay/airtime" element={<AirtimePurchase />} />
                     <Route path="/services" element={<Services />} />
                     <Route path="/smart-savings" element={<SmartSavings />} />
                     <Route path="/kyc" element={<KYCOnboarding />} />
+                    <Route path="/transactions" element={<Transactions />} />
                     <Route path="/settings" element={<div className="p-8 text-center"><h1 className="text-2xl font-bold">Settings Coming Soon</h1></div>} />
                     <Route path="*" element={<NotFound />} />
                   </Routes>

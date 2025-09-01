@@ -7,13 +7,52 @@ export type Json =
   | Json[]
 
 export type Database = {
-  // Allows to automatically instanciate createClient with right options
+  // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
     PostgrestVersion: "12.2.12 (cd3cf9e)"
   }
   public: {
     Tables: {
+      airtime_purchases: {
+        Row: {
+          amount: number
+          created_at: string
+          id: string
+          network_provider: string
+          phone_number: string
+          reference_number: string | null
+          status: string
+          transaction_fee: number | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          id?: string
+          network_provider: string
+          phone_number: string
+          reference_number?: string | null
+          status?: string
+          transaction_fee?: number | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          id?: string
+          network_provider?: string
+          phone_number?: string
+          reference_number?: string | null
+          status?: string
+          transaction_fee?: number | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       auto_save_rules: {
         Row: {
           amount: number | null
@@ -66,6 +105,84 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      bill_providers: {
+        Row: {
+          bill_type: string
+          created_at: string
+          id: string
+          is_active: boolean | null
+          logo_url: string | null
+          provider_name: string
+        }
+        Insert: {
+          bill_type: string
+          created_at?: string
+          id?: string
+          is_active?: boolean | null
+          logo_url?: string | null
+          provider_name: string
+        }
+        Update: {
+          bill_type?: string
+          created_at?: string
+          id?: string
+          is_active?: boolean | null
+          logo_url?: string | null
+          provider_name?: string
+        }
+        Relationships: []
+      }
+      bills: {
+        Row: {
+          account_number: string
+          amount: number
+          bill_type: string
+          created_at: string
+          customer_name: string | null
+          due_date: string | null
+          id: string
+          payment_date: string | null
+          provider_name: string
+          reference_number: string | null
+          status: string
+          transaction_fee: number | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          account_number: string
+          amount: number
+          bill_type: string
+          created_at?: string
+          customer_name?: string | null
+          due_date?: string | null
+          id?: string
+          payment_date?: string | null
+          provider_name: string
+          reference_number?: string | null
+          status?: string
+          transaction_fee?: number | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          account_number?: string
+          amount?: number
+          bill_type?: string
+          created_at?: string
+          customer_name?: string | null
+          due_date?: string | null
+          id?: string
+          payment_date?: string | null
+          provider_name?: string
+          reference_number?: string | null
+          status?: string
+          transaction_fee?: number | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
       }
       chat_participants: {
         Row: {
@@ -223,6 +340,33 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      mobile_networks: {
+        Row: {
+          created_at: string
+          id: string
+          is_active: boolean | null
+          logo_url: string | null
+          network_code: string | null
+          network_name: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_active?: boolean | null
+          logo_url?: string | null
+          network_code?: string | null
+          network_name: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_active?: boolean | null
+          logo_url?: string | null
+          network_code?: string | null
+          network_name?: string
+        }
+        Relationships: []
       }
       profiles: {
         Row: {
@@ -417,6 +561,10 @@ export type Database = {
     Functions: {
       generate_account_number: {
         Args: Record<PropertyKey, never>
+        Returns: string
+      }
+      generate_reference_number: {
+        Args: { prefix: string }
         Returns: string
       }
       get_current_user_id: {
