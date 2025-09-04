@@ -240,6 +240,195 @@ export type Database = {
         }
         Relationships: []
       }
+      cross_border_transactions: {
+        Row: {
+          created_at: string
+          exchange_rate: number
+          id: string
+          kyc_verification_id: string | null
+          provider: string | null
+          provider_transaction_id: string | null
+          purpose_of_transfer: string | null
+          receive_amount: number
+          recipient_country: string
+          recipient_currency: string
+          recipient_name: string
+          recipient_phone: string | null
+          reference_number: string | null
+          send_amount: number
+          send_currency: string
+          status: string
+          transaction_fee: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          exchange_rate: number
+          id?: string
+          kyc_verification_id?: string | null
+          provider?: string | null
+          provider_transaction_id?: string | null
+          purpose_of_transfer?: string | null
+          receive_amount: number
+          recipient_country: string
+          recipient_currency: string
+          recipient_name: string
+          recipient_phone?: string | null
+          reference_number?: string | null
+          send_amount: number
+          send_currency: string
+          status?: string
+          transaction_fee: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          exchange_rate?: number
+          id?: string
+          kyc_verification_id?: string | null
+          provider?: string | null
+          provider_transaction_id?: string | null
+          purpose_of_transfer?: string | null
+          receive_amount?: number
+          recipient_country?: string
+          recipient_currency?: string
+          recipient_name?: string
+          recipient_phone?: string | null
+          reference_number?: string | null
+          send_amount?: number
+          send_currency?: string
+          status?: string
+          transaction_fee?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      crypto_exchange_rates: {
+        Row: {
+          currency: string
+          id: string
+          last_updated: string
+          market_cap: number | null
+          ngn_price: number
+          price_change_24h: number | null
+          usd_price: number
+          volume_24h: number | null
+        }
+        Insert: {
+          currency: string
+          id?: string
+          last_updated?: string
+          market_cap?: number | null
+          ngn_price: number
+          price_change_24h?: number | null
+          usd_price: number
+          volume_24h?: number | null
+        }
+        Update: {
+          currency?: string
+          id?: string
+          last_updated?: string
+          market_cap?: number | null
+          ngn_price?: number
+          price_change_24h?: number | null
+          usd_price?: number
+          volume_24h?: number | null
+        }
+        Relationships: []
+      }
+      crypto_transactions: {
+        Row: {
+          created_at: string
+          exchange_rate: number | null
+          from_amount: number | null
+          from_currency: string | null
+          id: string
+          network_fee: number | null
+          recipient_address: string | null
+          reference_number: string | null
+          status: string
+          to_amount: number
+          to_currency: string
+          transaction_fee: number | null
+          transaction_hash: string | null
+          transaction_type: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          exchange_rate?: number | null
+          from_amount?: number | null
+          from_currency?: string | null
+          id?: string
+          network_fee?: number | null
+          recipient_address?: string | null
+          reference_number?: string | null
+          status?: string
+          to_amount: number
+          to_currency: string
+          transaction_fee?: number | null
+          transaction_hash?: string | null
+          transaction_type: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          exchange_rate?: number | null
+          from_amount?: number | null
+          from_currency?: string | null
+          id?: string
+          network_fee?: number | null
+          recipient_address?: string | null
+          reference_number?: string | null
+          status?: string
+          to_amount?: number
+          to_currency?: string
+          transaction_fee?: number | null
+          transaction_hash?: string | null
+          transaction_type?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      crypto_wallets: {
+        Row: {
+          balance: number
+          created_at: string
+          currency: string
+          id: string
+          private_key_encrypted: string | null
+          updated_at: string
+          user_id: string
+          wallet_address: string
+        }
+        Insert: {
+          balance?: number
+          created_at?: string
+          currency: string
+          id?: string
+          private_key_encrypted?: string | null
+          updated_at?: string
+          user_id: string
+          wallet_address: string
+        }
+        Update: {
+          balance?: number
+          created_at?: string
+          currency?: string
+          id?: string
+          private_key_encrypted?: string | null
+          updated_at?: string
+          user_id?: string
+          wallet_address?: string
+        }
+        Relationships: []
+      }
       kyc_verifications: {
         Row: {
           address: string
@@ -365,6 +554,51 @@ export type Database = {
           logo_url?: string | null
           network_code?: string | null
           network_name?: string
+        }
+        Relationships: []
+      }
+      payment_requests: {
+        Row: {
+          amount: number
+          created_at: string
+          currency: string
+          description: string | null
+          expires_at: string | null
+          id: string
+          metadata: Json | null
+          payment_method: string
+          qr_code_data: string
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          currency: string
+          description?: string | null
+          expires_at?: string | null
+          id?: string
+          metadata?: Json | null
+          payment_method: string
+          qr_code_data: string
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          currency?: string
+          description?: string | null
+          expires_at?: string | null
+          id?: string
+          metadata?: Json | null
+          payment_method?: string
+          qr_code_data?: string
+          status?: string
+          updated_at?: string
+          user_id?: string
         }
         Relationships: []
       }
